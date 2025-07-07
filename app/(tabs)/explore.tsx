@@ -6,13 +6,15 @@ import {
   Button,
   FlatList,
   StyleSheet,
-  Text,
   TextInput,
   View
 } from 'react-native';
 
+import EmpleadoItem from '@/components/EmpleadoItem';
+import GrupoItem from '@/components/GrupoItem';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+
 
 export default function TabTwoScreen() {
   const db = useSQLiteContext();
@@ -38,6 +40,8 @@ export default function TabTwoScreen() {
     cargarGrupos();
     cargarEmpleados();
   }, []);
+
+  // Cargar grupos y empleados desde la base de datos
 
   const cargarGrupos = async () => {
     const resultado = await db.getAllAsync<{ id: number; nombre: string }>(`SELECT * FROM jgrupo`);
@@ -148,62 +152,17 @@ export default function TabTwoScreen() {
       </View>
       {mostrarListaGrupos && (
   <FlatList
-    data={grupos}
-    keyExtractor={(item) => item.id.toString()}
-    renderItem={({ item }) => {
-      const [editando, setEditando] = useState(false);
-      const [nuevoNombre, setNuevoNombre] = useState(item.nombre);
+  data={grupos}
+  keyExtractor={(item) => item.id.toString()}
+  renderItem={({ item }) => (
+    <GrupoItem
+      item={item}
+      onActualizado={cargarGrupos}
+      onEliminado={cargarGrupos}
+    />
+  )}
+/>
 
-      const actualizarGrupo = async () => {
-        if (!nuevoNombre.trim()) return Alert.alert('Error', 'El nombre no puede estar vacío');
-        await db.runAsync(`UPDATE jgrupo SET nombre = ? WHERE id = ?`, [nuevoNombre, item.id]);
-        setEditando(false);
-        await cargarGrupos();
-      };
-
-      const eliminarGrupo = async () => {
-        Alert.alert(
-          'Eliminar grupo',
-          `¿Seguro que deseas eliminar "${item.nombre}"?`,
-          [
-            { text: 'Cancelar', style: 'cancel' },
-            {
-              text: 'Eliminar',
-              style: 'destructive',
-              onPress: async () => {
-                await db.runAsync(`DELETE FROM jgrupo WHERE id = ?`, [item.id]);
-                await cargarGrupos();
-              },
-            },
-          ]
-        );
-      };
-
-      return (
-        <View style={styles.listItemContainer}>
-          {editando ? (
-            <>
-              <TextInput
-                style={styles.input}
-                value={nuevoNombre}
-                onChangeText={setNuevoNombre}
-              />
-              <Button title="Guardar" onPress={actualizarGrupo} />
-              <Button title="Cancelar" onPress={() => setEditando(false)} />
-            </>
-          ) : (
-            <>
-              <Text style={styles.listItem}>📁 {item.nombre}</Text>
-              <View style={styles.actions}>
-                <Button title="Editar" onPress={() => setEditando(true)} />
-                <Button title="Eliminar" color="red" onPress={eliminarGrupo} />
-              </View>
-            </>
-          )}
-        </View>
-      );
-    }}
-  />
 )}
 
 
@@ -216,82 +175,18 @@ export default function TabTwoScreen() {
       </View>
       {mostrarListaEmpleados && (
   <FlatList
-    data={empleados}
-    keyExtractor={(item) => item.id.toString()}
-    renderItem={({ item }) => {
-      const [editando, setEditando] = useState(false);
-      const [nuevoNombre, setNuevoNombre] = useState(item.nombre);
-      const [nuevoGrupoId, setNuevoGrupoId] = useState<number | null>(
-        grupos.find((g) => g.nombre === item.grupo)?.id || null
-      );
+  data={empleados}
+  keyExtractor={(item) => item.id.toString()}
+  renderItem={({ item }) => (
+    <EmpleadoItem
+      item={item}
+      grupos={grupos}
+      onActualizado={cargarEmpleados}
+      onEliminado={cargarEmpleados}
+    />
+  )}
+/>
 
-      const actualizarEmpleado = async () => {
-        if (!nuevoNombre.trim()) return Alert.alert('Error', 'El nombre no puede estar vacío');
-        if (!nuevoGrupoId) return Alert.alert('Error', 'Selecciona un grupo');
-
-        await db.runAsync(
-          `UPDATE empleados SET nombre = ?, jgrupo_id = ? WHERE id = ?`,
-          [nuevoNombre, nuevoGrupoId, item.id]
-        );
-        setEditando(false);
-        await cargarEmpleados();
-      };
-
-      const eliminarEmpleado = async () => {
-        Alert.alert(
-          'Eliminar empleado',
-          `¿Seguro que deseas eliminar a "${item.nombre}"?`,
-          [
-            { text: 'Cancelar', style: 'cancel' },
-            {
-              text: 'Eliminar',
-              style: 'destructive',
-              onPress: async () => {
-                await db.runAsync(`DELETE FROM empleados WHERE id = ?`, [item.id]);
-                await cargarEmpleados();
-              },
-            },
-          ]
-        );
-      };
-
-      return (
-        <View style={styles.listItemContainer}>
-          {editando ? (
-            <>
-              <TextInput
-                style={styles.input}
-                value={nuevoNombre}
-                onChangeText={setNuevoNombre}
-                placeholder="Nombre del empleado"
-              />
-              <Picker
-                selectedValue={nuevoGrupoId}
-                onValueChange={(value) => setNuevoGrupoId(value)}
-                style={styles.picker}
-              >
-                {grupos.map((grupo) => (
-                  <Picker.Item key={grupo.id} label={grupo.nombre} value={grupo.id} />
-                ))}
-              </Picker>
-              <Button title="Guardar" onPress={actualizarEmpleado} />
-              <Button title="Cancelar" onPress={() => setEditando(false)} />
-            </>
-          ) : (
-            <>
-              <Text style={styles.listItem}>
-                👤 {item.nombre} — {item.grupo || 'Sin grupo'}
-              </Text>
-              <View style={styles.actions}>
-                <Button title="Editar" onPress={() => setEditando(true)} />
-                <Button title="Eliminar" color="red" onPress={eliminarEmpleado} />
-              </View>
-            </>
-          )}
-        </View>
-      );
-    }}
-  />
 )}
 
     </ThemedView>
