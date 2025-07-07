@@ -4,7 +4,7 @@ import { SQLiteDatabase } from 'expo-sqlite';
 export async function openVacacionesDb(db: SQLiteDatabase) {
   await db.execAsync('PRAGMA foreign_keys = ON;');
 
-  await db.execAsync(`
+ await db.execAsync(`
     CREATE TABLE IF NOT EXISTS jgrupo (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       nombre TEXT NOT NULL
@@ -20,8 +20,9 @@ export async function openVacacionesDb(db: SQLiteDatabase) {
     CREATE TABLE IF NOT EXISTS vacaciones (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       empleado_id INTEGER NOT NULL,
-      dia TEXT NOT NULL,
+      fecha TEXT NOT NULL,
       FOREIGN KEY (empleado_id) REFERENCES empleados(id) ON DELETE CASCADE
     );
   `);
+
 }
