@@ -5,6 +5,8 @@ import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { SQLiteProvider } from 'expo-sqlite'; // 👈 Importar el provider
+import { openVacacionesDb } from '../db/vacaciones'; // 👈 Ajusta la ruta si es necesario
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -13,16 +15,17 @@ export default function RootLayout() {
   });
 
   if (!loaded) {
-    // Async font loading only occurs in development.
     return null;
   }
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" />
-      </Stack>
+      <SQLiteProvider databaseName="vacaciones.db" onInit={openVacacionesDb}>
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="+not-found" />
+        </Stack>
+      </SQLiteProvider>
       <StatusBar style="auto" />
     </ThemeProvider>
   );
