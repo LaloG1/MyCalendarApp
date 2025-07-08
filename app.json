@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "MyCalendar",
+    "name": "EGM",
     "slug": "MyCalendar",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -16,7 +16,8 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.eduardovico14.MyCalendar"
     },
     "web": {
       "bundler": "metro",
@@ -38,6 +39,12 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "5ac1b21d-34f5-40ab-b332-ead490ff8100"
+      }
     }
   }
 }

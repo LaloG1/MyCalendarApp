@@ -7,8 +7,13 @@ import {
   FlatList,
   StyleSheet,
   TextInput,
-  View,
+  View
 } from "react-native";
+
+import * as DocumentPicker from "expo-document-picker";
+import * as FileSystem from "expo-file-system";
+import * as Sharing from "expo-sharing";
+
 
 import EmpleadoItem from "@/components/EmpleadoItem";
 import GrupoItem from "@/components/GrupoItem";
@@ -37,12 +42,12 @@ export default function TabTwoScreen() {
     { id: number; nombre: string; grupo: string }[]
   >([]);
 
+  const dbName = "vacaciones.db"; // nombre del archivo SQLite
+
   useEffect(() => {
     cargarGrupos();
     cargarEmpleados();
   }, []);
-
-  // Cargar grupos y empleados desde la base de datos
 
   const cargarGrupos = async () => {
     const resultado = await db.getAllAsync<{ id: number; nombre: string }>(
@@ -100,6 +105,55 @@ export default function TabTwoScreen() {
     } catch (error) {
       console.error(error);
       Alert.alert("Error", "No se pudo agregar el empleado");
+    }
+  };
+
+  const exportarBaseDatos = async () => {
+  const dbPath = `${FileSystem.documentDirectory}SQLite/${dbName}`;
+  const tempExportPath = `${FileSystem.documentDirectory}${dbName}`;
+
+  try {
+    // Copia la base de datos a una ubicación temporal para compartir
+    await FileSystem.copyAsync({
+      from: dbPath,
+      to: tempExportPath,
+    });
+
+    // Verifica si se puede compartir
+    if (await Sharing.isAvailableAsync()) {
+      await Sharing.shareAsync(tempExportPath);
+    } else {
+      Alert.alert(
+        "Compartir no disponible",
+        `La base de datos fue copiada a:\n${tempExportPath}`
+      );
+    }
+  } catch (error) {
+    console.error(error);
+    Alert.alert("Error", "No se pudo exportar ni compartir la base de datos");
+  }
+};
+
+
+  const importarBaseDatos = async () => {
+    try {
+      const res = await DocumentPicker.getDocumentAsync({
+        type: "*/*",
+        copyToCacheDirectory: true,
+      });
+
+      if (!res.canceled && res.assets && res.assets.length > 0) {
+        const fileUri = res.assets[0].uri;
+        const destino = `${FileSystem.documentDirectory}SQLite/${dbName}`;
+        await FileSystem.copyAsync({
+          from: fileUri,
+          to: destino,
+        });
+        Alert.alert("Éxito", "Base de datos importada. Reinicia la app.");
+      }
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", "No se pudo importar la base de datos");
     }
   };
 
@@ -200,6 +254,24 @@ export default function TabTwoScreen() {
           )}
         />
       )}
+
+      {/* Botones de exportar/importar BD */}
+      <View style={[styles.buttonContainer, { flexDirection: "row", gap: 10 }]}>
+        <View style={{ flex: 1 }}>
+          <Button
+            title="Exportar BD"
+            color="green"
+            onPress={exportarBaseDatos}
+          />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Button
+            title="Importar BD"
+            color="orange"
+            onPress={importarBaseDatos}
+          />
+        </View>
+      </View>
     </ThemedView>
   );
 }
