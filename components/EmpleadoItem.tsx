@@ -122,8 +122,8 @@ const EmpleadoItem: React.FC<EmpleadoItemProps> = ({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: '#fff',
-    padding: 12,
-    marginBottom: 8,
+    padding: 0,
+    marginBottom: 0,
     borderRadius: 6,
   },
   input: {
@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 8,
+    marginTop: 4,
     gap: 10,
   },
 });

@@ -108,8 +108,8 @@ const GrupoItem: React.FC<GrupoItemProps> = ({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: '#fff',
-    padding: 12,
-    marginBottom: 8,
+    padding: 0,
+    marginBottom: 0,
     borderRadius: 6,
   },
   text: {

@@ -12,9 +12,55 @@ import {
 } from "react-native";
 import { Calendar } from "react-native-calendars";
 
-import { HelloWave } from "@/components/HelloWave";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { LocaleConfig } from "react-native-calendars";
+
+LocaleConfig.locales["es"] = {
+  monthNames: [
+    "Enero",
+    "Febrero",
+    "Marzo",
+    "Abril",
+    "Mayo",
+    "Junio",
+    "Julio",
+    "Agosto",
+    "Septiembre",
+    "Octubre",
+    "Noviembre",
+    "Diciembre",
+  ],
+  monthNamesShort: [
+    "Ene",
+    "Feb",
+    "Mar",
+    "Abr",
+    "May",
+    "Jun",
+    "Jul",
+    "Ago",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dic",
+  ],
+  dayNames: [
+    "Domingo",
+    "Lunes",
+    "Martes",
+    "Miércoles",
+    "Jueves",
+    "Viernes",
+    "Sábado",
+  ],
+  dayNamesShort: ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"],
+  today: "Hoy",
+};
+
+LocaleConfig.defaultLocale = "es";
 
 export default function HomeScreen() {
   const db = useSQLiteContext();
@@ -107,164 +153,203 @@ export default function HomeScreen() {
 
   // ✅ Cargar empleados con vacaciones en una fecha específica
   const cargarEmpleadosDelDia = async (fecha: string) => {
-    const result = await db.getAllAsync<{ nombre: string }>(
-      `SELECT e.nombre FROM vacaciones v JOIN empleados e ON v.empleado_id = e.id WHERE v.fecha = ?`,
+    const result = await db.getAllAsync<{
+      nombre: string;
+      grupo: string;
+    }>(
+      `SELECT e.nombre, j.nombre as grupo
+     FROM vacaciones v
+     JOIN empleados e ON e.id = v.empleado_id
+     LEFT JOIN jgrupo j ON j.id = e.jgrupo_id
+     WHERE v.fecha = ?
+     ORDER BY e.nombre`,
       [fecha]
     );
-    setEmpleadosDelDia(result.map((row) => row.nombre));
+
+    // Formato: "Empleado - Grupo"
+    const lista = result.map((row) =>
+      row.grupo ? `${row.nombre} - ${row.grupo}` : row.nombre
+    );
+    setEmpleadosDelDia(lista);
   };
 
   // ✅ Generar los días marcados
   const markedDates = {
-    // 🔴 Colorear días con empleados agendados
     ...Object.entries(vacacionesPorFecha).reduce((acc, [fecha, total]) => {
-      if (showForm && selectedDates.includes(fecha)) return acc; // evitar sobrescribir si está en modo edición
+      const isSelected = selectedDates.includes(fecha);
 
-      if (total >= 1 && total < 4) {
+      // Color de fondo según cantidad
+      let bgColor = undefined;
+      if (total >= 4) bgColor = "red";
+      else if (total >= 1) bgColor = "green";
+
+      // Solo aplica customStyles si no está seleccionado manualmente
+      if (!showForm || !isSelected) {
         acc[fecha] = {
-          selected: true,
-          selectedColor: "green",
-          selectedTextColor: "#fff",
-        };
-      } else if (total >= 4) {
-        acc[fecha] = {
-          selected: true,
-          selectedColor: "red",
-          selectedTextColor: "#fff",
+          customStyles: {
+            container: {
+              backgroundColor: bgColor || "transparent",
+              borderRadius: 10,
+            },
+            text: {
+              color: "#fff",
+              fontWeight: "bold",
+            },
+          },
         };
       }
+
       return acc;
     }, {} as Record<string, any>),
 
-    // 🟦 Mostrar selección activa (solo 1 día si no estás agendando)
+    // Días seleccionados manualmente (modo agendar)
     ...(showForm
       ? selectedDates.reduce((acc, date) => {
           acc[date] = {
-            selected: true,
-            selectedColor: "#00adf5", // azul
-            selectedTextColor: "#fff",
+            customStyles: {
+              container: {
+                backgroundColor: "#00adf5",
+                borderRadius: 10,
+              },
+              text: {
+                color: "#fff",
+                fontWeight: "bold",
+              },
+            },
           };
           return acc;
         }, {} as Record<string, any>)
       : {
           [selectedDate]: {
-            selected: true,
-            selectedColor: "#00adf5", // azul para el día seleccionado fuera del modo de agendar
-            selectedTextColor: "#fff",
+            customStyles: {
+              container: {
+                backgroundColor: "#00adf5",
+                borderRadius: 10,
+              },
+              text: {
+                color: "#fff",
+                fontWeight: "bold",
+              },
+            },
           },
         }),
   };
 
   return (
-    <ThemedView style={styles.container}>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Bienvenido a My Calendar!</ThemedText>
-        <HelloWave />
-      </ThemedView>
+    <SafeAreaView style={{ flex: 1 }}>
+      <ThemedView style={styles.container}>
+        <ThemedView style={styles.titleContainer}>
+          <ThemedText type="title">E G M!</ThemedText>
+        </ThemedView>
 
-      <Calendar
-        style={styles.calendar}
-        onDayPress={(day) => {
-          setSelectedDate(day.dateString);
-          cargarEmpleadosDelDia(day.dateString); // ← Esto es clave
-          if (showForm) {
-            toggleDate(day.dateString);
-          }
-        }}
-        markedDates={markedDates}
-        theme={{
-          selectedDayBackgroundColor: "#00adf5",
-          todayTextColor: "#00adf5",
-          arrowColor: "orange",
-        }}
-      />
+        <Calendar
+          markingType="custom"
+          markedDates={markedDates}
+          onDayPress={(day) => {
+            setSelectedDate(day.dateString);
+            cargarEmpleadosDelDia(day.dateString);
+            if (showForm) {
+              toggleDate(day.dateString);
+            }
+          }}
+          theme={{
+            todayTextColor: "#00adf5",
+            arrowColor: "orange",
+          }}
+          style={styles.calendar}
+        />
 
-      <View style={styles.botonesAccion}>
-        {!showForm ? (
-          <Button
-            title="+ Agendar vacaciones"
-            onPress={() => {
-              setShowForm(true);
-              setSelectedDates([]);
-            }}
-          />
-        ) : (
-          <>
+        <View style={styles.botonesAccion}>
+          {!showForm ? (
             <Button
-              title="Cancelar"
-              color="#999"
+              title="+ Agendar vacaciones"
               onPress={() => {
-                setShowForm(false);
+                setShowForm(true);
                 setSelectedDates([]);
-                setEmpleadoSeleccionado(null);
-                setBusqueda("");
               }}
             />
-          </>
-        )}
-      </View>
-
-      {selectedDate && (
-        <View style={styles.listaAgendados}>
-          <Text style={styles.label}>
-            Empleados con vacaciones el {selectedDate}:
-          </Text>
-          {empleadosDelDia.length === 0 ? (
-            <Text style={{ color: "#666" }}>Nadie aún.</Text>
           ) : (
-            <FlatList
-              data={empleadosDelDia}
-              keyExtractor={(item, idx) => idx.toString()}
-              renderItem={({ item }) => (
-                <Text style={styles.empleadoDia}>• {item}</Text>
-              )}
-            />
+            <>
+              <View style={{ flex: 1 }}>
+                <Button
+                  title="Cancelar"
+                  color="#999"
+                  onPress={() => {
+                    setShowForm(false);
+                    setSelectedDates([]);
+                    setEmpleadoSeleccionado(null);
+                    setBusqueda("");
+                  }}
+                />
+              </View>
+              <View style={{ width: 10 }} />
+              <View style={{ flex: 1 }}>
+                <Button title="Guardar vacaciones" onPress={guardarVacacion} />
+              </View>
+            </>
           )}
         </View>
-      )}
 
-      {showForm && (
-        <View style={styles.formContainer}>
-          <Text style={styles.label}>Selecciona un empleado:</Text>
-          <TextInput
-            placeholder="Buscar empleado..."
-            style={styles.input}
-            value={busqueda}
-            onChangeText={setBusqueda}
-          />
-          <FlatList
-            data={empleados.filter((e) =>
-              e.nombre.toLowerCase().includes(busqueda.toLowerCase())
+        {selectedDate && (
+          <View style={styles.listaAgendados}>
+            <Text style={styles.label}>Agendados el {selectedDate}:</Text>
+            {empleadosDelDia.length === 0 ? (
+              <Text style={{ color: "#666" }}>Nadie aún.</Text>
+            ) : (
+              <FlatList
+                data={empleadosDelDia}
+                keyExtractor={(item, index) => index.toString()}
+                renderItem={({ item, index }) => (
+                  <Text style={styles.empleadoDia}>
+                    {index + 1}. {item}
+                  </Text>
+                )}
+              />
             )}
-            keyExtractor={(item) => item.id.toString()}
-            style={styles.lista}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={[
-                  styles.empleadoItem,
-                  empleadoSeleccionado === item.id && {
-                    backgroundColor: "#d0f0ff",
-                  },
-                ]}
-                onPress={() => setEmpleadoSeleccionado(item.id)}
-              >
-                <Text>{item.nombre}</Text>
-              </TouchableOpacity>
-            )}
-          />
-          <Button title="Guardar" onPress={guardarVacacion} />
-        </View>
-      )}
-    </ThemedView>
+          </View>
+        )}
+
+        {showForm && (
+          <View style={styles.formContainer}>
+            <Text style={styles.label}>Selecciona un empleado:</Text>
+            <TextInput
+              placeholder="Buscar empleado..."
+              style={styles.input}
+              value={busqueda}
+              onChangeText={setBusqueda}
+            />
+            <FlatList
+              data={empleados.filter((e) =>
+                e.nombre.toLowerCase().includes(busqueda.toLowerCase())
+              )}
+              keyExtractor={(item) => item.id.toString()}
+              style={styles.lista}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.empleadoItem,
+                    empleadoSeleccionado === item.id && {
+                      backgroundColor: "#d0f0ff",
+                    },
+                  ]}
+                  onPress={() => setEmpleadoSeleccionado(item.id)}
+                >
+                  <Text>{item.nombre}</Text>
+                </TouchableOpacity>
+              )}
+            />
+            <Button title="Guardar" onPress={guardarVacacion} />
+          </View>
+        )}
+      </ThemedView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16 },
   titleContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
+    alignItems: "center", // ⬅️ Esto centra horizontalmente el contenido
     marginBottom: 16,
   },
   calendar: {
@@ -279,7 +364,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     marginTop: 16,
-    marginBottom: 8,
     gap: 10,
   },
   listaAgendados: {
